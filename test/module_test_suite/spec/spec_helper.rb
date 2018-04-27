@@ -4,6 +4,19 @@ require "jwt"
 require_relative "../lib/algorithms.rb"
 
 module SpecHelpers
+  def self.wait_ready
+    30.times do |c|
+      begin
+        HTTParty.get("http://httpd/")
+        return # rubocop: disable Lint/NonLocalExitFromIterator
+      rescue StandardError => exc
+        puts "HTTP not ready after #{c} seconds: #{exc}"
+      end
+      sleep(1)
+    end
+    raise("HTTPd failed to come up")
+  end
+
   class TestRequest
     attr_reader :raw_response, :authorization_type, :b64_token, :token
 

@@ -1,0 +1,31 @@
+FROM centos:7
+
+RUN curl -L 'https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm' > /tmp/epel.rpm && \
+    rpm -i /tmp/epel.rpm
+
+RUN yum install -y rpm-build
+
+# RPM build requires the user to actually exist.
+ARG USER_UID=1000
+ARG USER_GID=1000
+RUN groupadd -g $USER_UID build && useradd -u $USER_UID -g $USER_GID -d /build --create-home build
+WORKDIR /build
+
+# Build & install the libjwt rpm
+COPY rpm_specs/libjwt.spec /build/rpm_specs/libjwt.spec
+RUN grep BuildRequires rpm_specs/libjwt.spec | sed -e 's|^BuildRequires: ||' | xargs yum install -y
+USER build
+RUN rpmbuild -ba rpm_specs/libjwt.spec
+USER root
+RUN rpm -i /build/rpmbuild/RPMS/x86_64/libjwt-[0-9]*.rpm
+
+# Build the mod_request_env_jwt rpm
+COPY rpm_specs/mod_request_env_jwt.spec /build/rpm_specs/mod_request_env_jwt.spec
+RUN grep BuildRequires rpm_specs/mod_request_env_jwt.spec | sed -e 's|^BuildRequires: ||' | xargs yum install -y
+
+COPY . /build/mod_request_env_jwt
+RUN chown -R build:build /build/mod_request_env_jwt
+
+USER build
+VOLUME ["/build/rpmbuild/RPMS"]
+CMD rpmbuild -ba rpm_specs/mod_request_env_jwt.spec

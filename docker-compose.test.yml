@@ -1,25 +1,38 @@
 version: '2'
 
 services:
+  # This container builds the httpd config and key files
+  # Volume mounted in by other containers
   testfiles:
     build: test/module_test_suite
-  
+
+  # Test Sinatra app which returns the backend request
   testapp:
     build: test/test_sinatra_app
 
+  # Container which builds the RPMs used by httpd
+  rpmbuild:
+    build:
+      context: .
+      dockerfile: Dockerfile.rpmbuild
+
+  # Apache2 with module under test
+  # Module installed via RPM from rpmbuild container
   httpd:
-    build: .
+    build: test/test_httpd
     depends_on:
       - testfiles
       - testapp
+      - rpmbuild
     volumes_from:
       - testfiles:ro
+      - rpmbuild:ro
     links:
       - testapp
     ports:
       - 80:80
-    command: /usr/sbin/httpd -f /test_files/httpd/httpd.conf -e info -DFOREGROUND
 
+  # Test runner which performs functional tests against httpd
   test_suite:
     build: test/module_test_suite
     depends_on:

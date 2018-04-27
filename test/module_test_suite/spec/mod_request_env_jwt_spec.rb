@@ -1,6 +1,10 @@
 require_relative "spec_helper.rb"
 
 describe "mod_request_env_jwt" do
+  before :all do
+    SpecHelpers.wait_ready
+  end
+
   it "is disabled by default" do
     response = SpecHelpers::TestRequest.new("/defaults")
     expect(response.has_bearer_token?).to be_falsy
