@@ -11,6 +11,7 @@ URL:            https://github.com/benmcollins/libjwt
 Source:         https://github.com/benmcollins/libjwt/archive/v%{version}.tar.gz
 
 BuildRequires: libtool pkgconfig autoconf gcc make openssl-devel jansson-devel
+Requires: jansson
 
 %description
 JWT C Library
