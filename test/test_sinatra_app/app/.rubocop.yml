@@ -1,0 +1,7 @@
+# use 1.8 style hashes
+Style/HashSyntax:
+  EnforcedStyle: hash_rockets
+
+# use double quotes for string literals
+Style/StringLiterals:
+  EnforcedStyle: double_quotes

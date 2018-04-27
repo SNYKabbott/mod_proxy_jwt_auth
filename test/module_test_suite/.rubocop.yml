@@ -1,0 +1,37 @@
+# use 1.8 style hashes
+Style/HashSyntax:
+  EnforcedStyle: hash_rockets
+
+# use double quotes for string literals
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+# use 1.8 style hashes
+Style/HashSyntax:
+    EnforcedStyle: hash_rockets
+
+Metrics/AbcSize:
+    Enabled: false
+
+Metrics/CyclomaticComplexity:
+    Enabled: false
+
+Metrics/LineLength:
+    Enabled: false
+
+Metrics/MethodLength:
+    Enabled: false
+
+Metrics/BlockLength:
+    Enabled: false
+
+Layout/IndentHeredoc:
+    Enabled: false
+
+# class documentation isn't necessary
+Style/Documentation:
+    Enabled: false
+
+# EOL is a fairly standard heredoc delimiter
+Naming/HeredocDelimiterNaming:
+    Enabled: false

@@ -1,0 +1,31 @@
+version: '2'
+
+services:
+  testfiles:
+    build: test/module_test_suite
+  
+  testapp:
+    build: test/test_sinatra_app
+
+  httpd:
+    build: .
+    depends_on:
+      - testfiles
+      - testapp
+    volumes_from:
+      - testfiles:ro
+    links:
+      - testapp
+    ports:
+      - 80:80
+    command: /usr/sbin/httpd -f /test_files/httpd/httpd.conf -e info -DFOREGROUND
+
+  test_suite:
+    build: test/module_test_suite
+    depends_on:
+      - testfiles
+      - httpd
+    volumes_from:
+      - testfiles:ro
+    links:
+      - httpd
