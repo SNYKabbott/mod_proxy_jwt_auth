@@ -1,6 +1,8 @@
 AC_INIT([mod_request_env_jwt], [0.1], [devs@joinroot.com])
 AM_CONFIG_HEADER(config.h)
-AM_INIT_AUTOMAKE()
+
+# Don't require NEWS, COPYING, ChangeLog files.
+AM_INIT_AUTOMAKE([foreign])
 
 AC_CONFIG_MACRO_DIR([acinclude.d])
 
