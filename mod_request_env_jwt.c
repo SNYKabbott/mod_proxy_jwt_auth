@@ -103,12 +103,13 @@ int load_key_file(apr_pool_t *pool, const char *path, request_env_jwt_config *co
 
   conf->token_alg_key = apr_pcalloc(pool, conf->token_alg_key_len);
   bytes_read = fread(conf->token_alg_key, 1, conf->token_alg_key_len, fp);
+  fclose(fp);
+
   if(bytes_read != conf->token_alg_key_len) {
     ap_log_perror(APLOG_MARK, APLOG_ERR, 0, pool, APLOGNO(99900) "Error while reading key file %s: read %d/%d bytes", path, bytes_read, conf->token_alg_key_len);
     return -1;
   }
 
-  fclose(fp);
   *(conf->token_alg_key + conf->token_alg_key_len) = '\0';
   return conf->token_alg_key_len;
 }
@@ -142,7 +143,6 @@ jwt_alg_t str_to_jwt_alg(apr_pool_t *pool, const char *alg) {
 
 /********** Configuration Functions **********/
 void *create_dir_conf(apr_pool_t *pool, char *context) {
-  context = context ? context : "(undefined context)";
   request_env_jwt_config *conf = apr_pcalloc(pool, sizeof(request_env_jwt_config));
   if(conf) {
     conf->enabled = 0;

@@ -2,12 +2,9 @@ FROM centos:7
 
 RUN yum update -y
 
-#RUN curl -L 'https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm' > /tmp/epel.rpm && \
-#    rpm -i /tmp/epel.rpm && \
-#    yum install -y python-pip && \
-#    cd /config_engine && \
-#    pip install -r requirements.txt && \
-#    yum remove -y python-pip
+RUN curl -L 'https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm' > /tmp/epel.rpm && \
+    rpm -i /tmp/epel.rpm
+RUN yum install -y cppcheck
 
 #
 # DEV/WIP: Test Module
@@ -29,8 +26,11 @@ RUN cd /tmp && \
 RUN cp /usr/local/lib/libjwt.* /usr/lib64 -a && \
     ldconfig
 
+RUN yum install llvm-toolset-7-clang-tools-extra
+
 COPY ./ /tmp/request_env_jwt
 RUN cd /tmp/request_env_jwt && \
+    cppcheck --enable=all ./ --error-exitcode=1 && \
     export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/usr/local/lib/pkgconfig && \
     autoreconf -ivf && \
     ./configure
