@@ -1,7 +1,7 @@
 #!/bin/bash
 set -eo pipefail
 
-RPMDIR="/build/rpmbuild/RPMS/x86_64"
+RPMDIR="/RPMS/x86_64"
 
 # Wait for the rpm to be generated
 for((c=0;;c++)); do

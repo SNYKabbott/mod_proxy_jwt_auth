@@ -11,6 +11,10 @@ ARG USER_GID=1000
 RUN groupadd -g $USER_UID build && useradd -u $USER_UID -g $USER_GID -d /build --create-home build
 WORKDIR /build
 
+# Output directory
+RUN mkdir /RPMS && chown build:build /RPMS
+VOLUME ["/RPMS"]
+
 # Build & install the libjwt rpm
 COPY rpm_specs/libjwt.spec /build/rpm_specs/libjwt.spec
 RUN grep BuildRequires rpm_specs/libjwt.spec | sed -e 's|^BuildRequires: ||' | xargs yum install -y
@@ -27,5 +31,5 @@ COPY . /build/mod_request_env_jwt
 RUN chown -R build:build /build/mod_request_env_jwt
 
 USER build
-VOLUME ["/build/rpmbuild/RPMS"]
-CMD rpmbuild -ba rpm_specs/mod_request_env_jwt.spec
+# The cp is to make the path friendlier and to allow the image built libjwt to be copied out
+CMD rpmbuild -ba rpm_specs/mod_request_env_jwt.spec && cp /build/rpmbuild/RPMS/* /RPMS -rv
