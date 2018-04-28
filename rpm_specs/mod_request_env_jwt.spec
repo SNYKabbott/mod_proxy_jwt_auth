@@ -16,7 +16,6 @@ Request ENV JWT module for the Apache web server
 %build
 cd /build/mod_request_env_jwt
 cppcheck --enable=all ./ --error-exitcode=1
-export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/usr/local/lib/pkgconfig
 autoreconf -ivf
 ./configure
 make
