@@ -13,7 +13,7 @@ AM_CFLAGS = -Wall -Werror
 if NITPICK
 # This is off by default as it find errors in Apache headers
 AM_CFLAGS += -Wextra -Wundef -Wshadow -Wunsafe-loop-optimizations -Wconversion -Wmissing-format-attribute -Wredundant-decls
-AM_CFLAGS += -ansi -Wmissing-noreturn -Wlogical-op -Wjump-misses-init -Wdouble-promotion -Wshadow
+AM_CFLAGS += -Wmissing-noreturn -Wlogical-op -Wjump-misses-init -Wdouble-promotion -Wshadow
 endif
 
 if DEBUG
