@@ -10,12 +10,6 @@ services:
   testapp:
     build: test/test_sinatra_app
 
-  # Container which builds the RPMs used by httpd
-  rpmbuild:
-    build:
-      context: .
-      dockerfile: Dockerfile.rpmbuild
-
   # Apache2 with module under test
   # Module installed via RPM from rpmbuild container
   httpd:
@@ -23,10 +17,10 @@ services:
     depends_on:
       - testfiles
       - testapp
-      - rpmbuild
     volumes_from:
       - testfiles:ro
-      - rpmbuild:ro
+    volumes:
+      - ./RPMS:/RPMS:ro
     links:
       - testapp
     ports:

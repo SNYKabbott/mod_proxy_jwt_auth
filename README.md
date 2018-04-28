@@ -14,10 +14,8 @@ Quickstart
 ### NOTE: The following helpers must be run from the repo directory, require Docker and docker-compose, and leave Docker images on the host.
 
 ```bash
-# Run tests in Docker compose
-./test.sh
-# Build RPM, output to ./RPMS
-./build_rpm.sh
+# Compile libjwt and mod_request_env_jwt, package into RPMs available at ./RPMS, and run the test suite
+./build.sh
 ```
 
 Use
