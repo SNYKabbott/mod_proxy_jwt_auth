@@ -45,12 +45,12 @@ module SpecHelpers
     end
 
     def headers
-      return nil unless @token
+      return {} unless @token
       @token[1]
     end
 
     def payload
-      return nil unless @token
+      return {} unless @token
       @token[0]
     end
   end

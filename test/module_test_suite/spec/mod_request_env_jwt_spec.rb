@@ -35,7 +35,9 @@ describe "mod_request_env_jwt" do
     end
 
     it "returns a token issued within the last second" do
-      expect(Time.now.to_f - response.payload["iat"]).to be < 1.0
+      delta = Time.now.to_f - response.payload["iat"]
+      expect(delta).to be > 0
+      expect(delta).to be < 1.0
     end
 
     it "returns a token valid at issue time" do
