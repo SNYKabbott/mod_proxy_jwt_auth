@@ -30,8 +30,8 @@ AX_WITH_APXS()
 AC_ARG_WITH(apr_config, AC_HELP_STRING([[--with-apr-config=FILE]], [Path to apr-config program]),
 			[ apr_config="$withval" ],
 			[AC_PATH_PROGS(apr_config,
-				[apr-config apr-0-config apr-1-config], 
-				[no], 
+				[apr-config apr-0-config apr-1-config],
+				[no],
 				[$PATH:/usr/sbin/:/usr/local/apache2/bin]
 			)]
 )

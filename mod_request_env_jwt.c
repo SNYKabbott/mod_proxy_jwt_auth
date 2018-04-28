@@ -1,9 +1,9 @@
-/* 
+/*
 **  mod_request_env_jwt: Remap request ENV vars and pass to proxied app as a
 **  JSON Web Token via a Authorization Bearer header.
 **
 **  See README.md for details and LICENSE for licensing information.
-*/ 
+*/
 
 #include "apr.h"
 #include "apr_hash.h"
@@ -79,7 +79,7 @@ static const command_rec request_env_jwt_directives[] = {
 
 /* Dispatch list for API hooks */
 module AP_MODULE_DECLARE_DATA request_env_jwt_module = {
-    STANDARD20_MODULE_STUFF, 
+    STANDARD20_MODULE_STUFF,
     create_dir_conf,                /* create per-dir    config structures */
     merge_conf,                     /* merge  per-dir    config structures */
     create_server_conf,             /* create per-server config structures */
@@ -172,7 +172,7 @@ void *merge_conf(apr_pool_t *pool, void *BASE, void *ADD) {
   /* Merge configurations */
   conf->enabled = ( add->enabled == 0 ) ? base->enabled : add->enabled;
   conf->allow_missing = ( add->allow_missing == 0 ) ? base->allow_missing : add->allow_missing;
- 
+
   conf->claim_map = apr_table_clone(pool, base->claim_map);
   apr_table_overlap(conf->claim_map, add->claim_map, APR_OVERLAP_TABLES_SET);
 
@@ -255,7 +255,7 @@ int print_request_env_keys(void* rec_v, const char *key, const char *value) {
   ap_log_rerror(APLOG_MARK, APLOG_INFO, 0, (request_rec *)(rec_v), APLOGNO(99906) "mod_request_env_jwt: Available key: %s", key);
   return 1;
 }
-  
+
 
 int iterate_claim_map(void* data_v, const char *env_key, const char *jwt_key) {
   iterate_claim_map_data *data = (iterate_claim_map_data *)(data_v);
@@ -327,7 +327,7 @@ int add_auth_header(request_rec *r, request_env_jwt_config *conf) {
     // This function logs errors inline
     return HTTP_INTERNAL_SERVER_ERROR;
   }
-  
+
   // jwt_encode_str returns a pointer that needs to be free'd.
   token_str = jwt_encode_str(token);
   if(token_str == NULL) {
@@ -342,7 +342,7 @@ int add_auth_header(request_rec *r, request_env_jwt_config *conf) {
 
   return OK;
 }
-  
+
 /********** Handlers **********/
 static int request_env_jwt_handler(request_rec *r)
 {
@@ -360,7 +360,7 @@ static int request_env_jwt_handler(request_rec *r)
   rv = add_auth_header(r, conf);
   if (rv != OK)
     return rv;
-    
+
   /* Decline the request as this module modifies but does not process the request*/
   return DECLINED;
 }
