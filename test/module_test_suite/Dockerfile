@@ -8,6 +8,8 @@ RUN cd /app; bundle install
 COPY ./ /app
 WORKDIR /app
 
+RUN bundle exec rubocop
+
 RUN mkdir -p /test_files/httpd /test_files/keys && \
    bundle exec ruby bin/generate_test_files.rb
 
