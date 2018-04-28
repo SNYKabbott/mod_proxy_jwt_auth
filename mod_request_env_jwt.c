@@ -18,6 +18,8 @@
 #include "http_request.h"
 #include "jwt.h"
 
+#define TOKEN_DEFAULT_DURATION 30
+
 typedef struct {
   int enabled;
   int allow_missing;
@@ -25,6 +27,7 @@ typedef struct {
   jwt_alg_t token_alg;
   unsigned char *token_alg_key;
   int token_alg_key_len;
+  int token_duration;
 } request_env_jwt_config;
 
 typedef enum {
@@ -32,7 +35,8 @@ typedef enum {
   dir_allow_missing,
   dir_claim_map,
   dir_token_alg,
-  dir_token_alg_key
+  dir_token_alg_key,
+  dir_token_duration
 } request_env_jwt_directive_enum;
 
 // The following struct is for passing multiple variables into the claim_map apr_table_do iterator
@@ -64,11 +68,12 @@ static void request_env_jwt_register_hooks(apr_pool_t *p);
 
 /****************************** Apache Module API Directives ******************************/
 static const command_rec request_env_jwt_directives[] = {
-  AP_INIT_TAKE1("RequestEnvJwtEnabled",               set_config_single_arg, (void *)dir_enabled,       OR_ALL, "Enable or disable mod_request_env_jwt"),
-  AP_INIT_TAKE1("RequestEnvJwtAllowMissing",          set_config_single_arg, (void *)dir_allow_missing, OR_ALL, "Enable missing env var tolerance"),
-  AP_INIT_TAKE2("RequestEnvJwtClaimMap",              set_config_double_arg, (void *)dir_claim_map,     OR_ALL, "Add a request env var ID to JWT claim ID map"),
-  AP_INIT_TAKE1("RequestEnvJwtTokenAlgorithm",        set_config_single_arg, (void *)dir_token_alg,     OR_ALL, "Set JWT token algorithm"),
-  AP_INIT_TAKE1("RequestEnvJwtTokenAlgorithmKeyPath", set_config_single_arg, (void *)dir_token_alg_key, OR_ALL, "File path to the JWT token algorithm key file"),
+  AP_INIT_TAKE1("RequestEnvJwtEnabled",               set_config_single_arg, (void *)dir_enabled,        OR_ALL, "Enable or disable mod_request_env_jwt"),
+  AP_INIT_TAKE1("RequestEnvJwtAllowMissing",          set_config_single_arg, (void *)dir_allow_missing,  OR_ALL, "Enable missing env var tolerance"),
+  AP_INIT_TAKE2("RequestEnvJwtClaimMap",              set_config_double_arg, (void *)dir_claim_map,      OR_ALL, "Add a request env var ID to JWT claim ID map"),
+  AP_INIT_TAKE1("RequestEnvJwtTokenAlgorithm",        set_config_single_arg, (void *)dir_token_alg,      OR_ALL, "Set JWT token algorithm"),
+  AP_INIT_TAKE1("RequestEnvJwtTokenAlgorithmKeyPath", set_config_single_arg, (void *)dir_token_alg_key,  OR_ALL, "File path to the JWT token algorithm key file"),
+  AP_INIT_TAKE1("RequestEnvJwtTokenDuration",         set_config_single_arg, (void *)dir_token_duration, OR_ALL, "JWT token duration in seconds"),
   { NULL }
 };
 
@@ -150,6 +155,7 @@ void *create_dir_conf(apr_pool_t *pool, char *context) {
     conf->token_alg = JWT_ALG_NONE;
     conf->token_alg_key = NULL;
     conf->token_alg_key_len = 0;
+    conf->token_duration = TOKEN_DEFAULT_DURATION;
   }
   return conf;
 }
@@ -178,7 +184,8 @@ void *merge_conf(apr_pool_t *pool, void *BASE, void *ADD) {
     conf->token_alg_key = base->token_alg_key;
     conf->token_alg_key_len = base->token_alg_key_len;
   }
-  
+
+  conf->token_duration = ( add->enabled == TOKEN_DEFAULT_DURATION ) ? base->token_duration : add->token_duration;
   return conf ;
 }
 
@@ -210,8 +217,12 @@ static const char *set_config_single_arg(cmd_parms *cmd, void *config, const cha
   case dir_token_alg_key:
     load_key_file(cmd->pool, value, conf);
     break;
+  case dir_token_duration:
+    conf->token_duration = atoi(value);
+    ap_log_perror(APLOG_MARK, APLOG_INFO, 0, cmd->pool, APLOGNO(99903) "mod_request_env_jwt: Token duration set to %d seconds", conf->token_duration);
+    break;
   default:
-    ap_log_perror(APLOG_MARK, APLOG_ERR, 0, cmd->pool, APLOGNO(99903) "mod_request_env_jwt: INTERNAL ERROR: Unknown directive 0x%02x passed to set_config_single_arg", (request_env_jwt_directive_enum)cmd->info);
+    ap_log_perror(APLOG_MARK, APLOG_ERR, 0, cmd->pool, APLOGNO(99904) "mod_request_env_jwt: INTERNAL ERROR: Unknown directive 0x%02x passed to set_config_single_arg", (request_env_jwt_directive_enum)cmd->info);
     abort();
   }
 
@@ -232,7 +243,7 @@ static const char *set_config_double_arg(cmd_parms *cmd, void *config, const cha
     apr_table_set(conf->claim_map, value1, value2);
     break;
   default:
-    ap_log_perror(APLOG_MARK, APLOG_ERR, 0, cmd->pool, APLOGNO(99904) "mod_request_env_jwt: INTERNAL ERROR: Unknown directive 0x%02x passed to set_config_double_arg", (request_env_jwt_directive_enum)cmd->info);
+    ap_log_perror(APLOG_MARK, APLOG_ERR, 0, cmd->pool, APLOGNO(99905) "mod_request_env_jwt: INTERNAL ERROR: Unknown directive 0x%02x passed to set_config_double_arg", (request_env_jwt_directive_enum)cmd->info);
     abort();
   }
 
@@ -241,7 +252,7 @@ static const char *set_config_double_arg(cmd_parms *cmd, void *config, const cha
 
 /********** Handler Helpers **********/
 int print_request_env_keys(void* rec_v, const char *key, const char *value) {
-  ap_log_rerror(APLOG_MARK, APLOG_INFO, 0, (request_rec *)(rec_v), APLOGNO(99905) "mod_request_env_jwt: Available key: %s", key);
+  ap_log_rerror(APLOG_MARK, APLOG_INFO, 0, (request_rec *)(rec_v), APLOGNO(99906) "mod_request_env_jwt: Available key: %s", key);
   return 1;
 }
   
@@ -253,7 +264,7 @@ int iterate_claim_map(void* data_v, const char *env_key, const char *jwt_key) {
   env_value = apr_table_get(data->r->subprocess_env, env_key);
   if (env_value == NULL) {
     if (data->conf->allow_missing != 1) {
-      ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, data->r, APLOGNO(99906) "mod_request_env_jwt: Request env missing required key %s", env_key);
+      ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, data->r, APLOGNO(99907) "mod_request_env_jwt: Request env missing required key %s", env_key);
       apr_table_do(print_request_env_keys, data->r, data->r->subprocess_env, NULL);
       data->error = 1;
       return 0;
@@ -264,7 +275,7 @@ int iterate_claim_map(void* data_v, const char *env_key, const char *jwt_key) {
   }
 
   if (jwt_add_grant(data->token, jwt_key, env_value) != 0) {
-    ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, data->r, APLOGNO(99907) "mod_request_env_jwt: Failed to add claim %s to the token", jwt_key);
+    ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, data->r, APLOGNO(99908) "mod_request_env_jwt: Failed to add claim %s to the token", jwt_key);
     data->error = 1;
     return 0;
   }
@@ -293,21 +304,21 @@ int add_auth_header(request_rec *r, request_env_jwt_config *conf) {
   /* NOTE: These functions return the err code, they don't set errno */
   rv = jwt_new(&token);
   if(rv != 0) {
-    ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(99908) "mod_request_env_jwt: Error initializing JWT token: %s", strerror(rv));
+    ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(99909) "mod_request_env_jwt: Error initializing JWT token: %s", strerror(rv));
     return HTTP_INTERNAL_SERVER_ERROR;
   }
 
   rv = jwt_set_alg(token, conf->token_alg, conf->token_alg_key, conf->token_alg_key_len);
   if(rv != 0) {
-    ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(99909) "mod_request_env_jwt: Error setting JWT algorithm: %s", strerror(rv));
+    ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(99910) "mod_request_env_jwt: Error setting JWT algorithm: %s", strerror(rv));
     return HTTP_INTERNAL_SERVER_ERROR;
   }
 
   // Set timing claims
   if(jwt_add_grant_int(token, "iat", now) != 0 ||
      jwt_add_grant_int(token, "nbf", now) != 0 ||
-     jwt_add_grant_int(token, "exp", (now + 30)) != 0) { // TODO: CONFIG SETTING
-    ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(99910) "mod_request_env_jwt: Error setting JWT timing claims");
+     jwt_add_grant_int(token, "exp", (now + conf->token_duration)) != 0) {
+    ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(99911) "mod_request_env_jwt: Error setting JWT timing claims");
     return HTTP_INTERNAL_SERVER_ERROR;
   }
 
@@ -320,7 +331,7 @@ int add_auth_header(request_rec *r, request_env_jwt_config *conf) {
   // jwt_encode_str returns a pointer that needs to be free'd.
   token_str = jwt_encode_str(token);
   if(token_str == NULL) {
-    ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(99911) "mod_request_env_jwt: Error encoding token");
+    ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(99912) "mod_request_env_jwt: Error encoding token");
     return HTTP_INTERNAL_SERVER_ERROR;
   }
 
@@ -341,7 +352,7 @@ static int request_env_jwt_handler(request_rec *r)
   int rv;
 
   if (conf->enabled != 1) {
-    ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r, APLOGNO(99912) "mod_request_env_jwt: Disabled");
+    ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r, APLOGNO(99913) "mod_request_env_jwt: Disabled");
     return DECLINED;
   }
 

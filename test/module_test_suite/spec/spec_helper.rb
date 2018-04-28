@@ -10,7 +10,7 @@ module SpecHelpers
         HTTParty.get("http://httpd/")
         return # rubocop: disable Lint/NonLocalExitFromIterator
       rescue StandardError => exc
-        puts "HTTP not ready after #{c} seconds: #{exc}"
+        puts "HTTPd not ready after #{c} seconds: #{exc}"
       end
       sleep(1)
     end

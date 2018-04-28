@@ -1,7 +1,8 @@
 mod_request_env_jwt
 ===================
 
-Apache2 module which maps request environment variables to claims in a Json Web Token passed to a proxied server.
+Apache2 module which passes a Json Web Token as a Bearer authorization header to a proxied server, optionally mapping request environment variables to JWT claims.
+This module in intended to allow Apache to authenticate itself to a backend application when acting as a reverse proxy.
 
 More on JWT : https://jwt.io/
 
@@ -86,3 +87,13 @@ Sets the JWT token signature algorithm, default NONE
 
 Sets the path to the key file to use for signing keys.
 Only valid with algorithms that require a key.
+
+### RequestEnvJwtTokenDuration
+**Description:** Token duration in seconds
+**Syntax:** RequestEnvJwtTokenDuration [Seconds integer]
+**Context:** server config, virtual host, directory
+
+Sets the token duration in seconds.
+After [duration] seconds the token will expire and no longer be valid.
+Default duration is 30 seconds.
+Note that bad values the duration will be 0 seconds and the token will immediately expire.

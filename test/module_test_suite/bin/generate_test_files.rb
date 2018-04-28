@@ -84,6 +84,9 @@ EOL
     contents += httpd_conf_location_block("/algorithms/#{algorithm}", options)
   end
 
+  contents += "# Duration Tests\n"
+  contents += httpd_conf_location_block("/token_duration", ["RequestEnvJwtEnabled On", "RequestEnvJwtTokenDuration 90"])
+
   contents += "</VirtualHost>"
 
   contents

@@ -27,6 +27,32 @@ describe "mod_request_env_jwt" do
     expect(response.payload["testvar1"]).to eql("OneValue")
   end
 
+  describe "Token Timing" do
+    let(:response) do
+      response = SpecHelpers::TestRequest.new("/enabled")
+      response.decode
+      response
+    end
+
+    it "returns a token issued within the last second" do
+      expect(Time.now.to_f - response.payload["iat"]).to be < 1.0
+    end
+
+    it "returns a token valid at issue time" do
+      expect(response.payload["nbf"]).to eql(response.payload["iat"])
+    end
+
+    it "has a 30 second expiration by default" do
+      expect(response.payload["exp"] - response.payload["iat"]).to eql(30)
+    end
+
+    it "allows the expiration to be tuned" do
+      response = SpecHelpers::TestRequest.new("/token_duration")
+      response.decode
+      expect(response.payload["exp"] - response.payload["iat"]).to eql(90)
+    end
+  end
+
   describe "Claim Mapping" do
     describe "with AllowMissing Enabled" do
       it "returns only testvar1 with no other maps defined" do
