@@ -15,6 +15,7 @@ Request ENV JWT module for the Apache web server
 
 %build
 cd /build/mod_request_env_jwt
+grep 'APLOGNO([0-9]\+)' mod_request_env_jwt.c | sed -e 's|.*APLOGNO(\([0-9]\+\)).*|\1|' | sort | uniq -c | grep -qv '^[[:space:]]\+1' && echo "Duplicate APLOGNO numbers detected" && /bin/false
 cppcheck --enable=all ./ --error-exitcode=1
 autoreconf -ivf
 ./configure
