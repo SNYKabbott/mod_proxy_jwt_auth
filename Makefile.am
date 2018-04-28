@@ -4,21 +4,20 @@ noinst_LTLIBRARIES = libmodrequestenvjwt.la
 noinst_DATA = mod_request_env_jwt.la
 
 AM_CPPFLAGS = ${APACHE_CFLAGS} ${JWT_CFLAGS}
-# ${JWT_CFLAGS} ${JANSSON_CFLAGS} ${Z_CFLAGS}
 AM_LDFLAGS = ${JWT_LIBS} ${APR_LDFLAGS}
-# ${JWT_LIBS} ${JANSSON_LDFLAGS} ${Z_LIBS} 
 
 libmodrequestenvjwt_la_SOURCES = mod_request_env_jwt.c
 
-AM_CXXFLAGS = -Wall
+AM_CFLAGS = -Wall -Werror
 
 if NITPICK
-AM_CXXFLAGS += -Wextra -Wundef -Wshadow -Wunsafe-loop-optimizations -Wconversion -Wmissing-format-attribute
-AM_CXXFLAGS += -Wredundant-decls -ansi -Wmissing-noreturn
+# This is off by default as it find errors in Apache headers
+AM_CFLAGS += -Wextra -Wundef -Wshadow -Wunsafe-loop-optimizations -Wconversion -Wmissing-format-attribute -Wredundant-decls
+AM_CFLAGS += -ansi -Wmissing-noreturn -Wlogical-op -Wjump-misses-init -Wdouble-promotion -Wshadow
 endif
 
 if DEBUG
-AM_CXXFLAGS += -DDEBUG
+AM_CFLAGS += -DDEBUG
 endif
 
 install-exec-local:
@@ -26,5 +25,3 @@ install-exec-local:
 
 mod_request_env_jwt.la: libmodrequestenvjwt.la
 	${APXS} -c -o $@ $< ${APACHE_CFLAGS}
-
-#${JWT_CFLAGS} ${JWT_LIBS} ${JANSSON_CFLAGS} ${JANSSON_LDFLAGS} ${Z_CFLAGS} ${Z_LIBS}

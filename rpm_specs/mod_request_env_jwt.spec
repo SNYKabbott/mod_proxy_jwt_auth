@@ -7,7 +7,7 @@ Group:          System Environment/Daemons
 License:        Apache-2
 URL:            TODO
 
-BuildRequires: libtool pkgconfig autoconf gcc-c++ make libjwt cppcheck httpd-devel
+BuildRequires: libtool pkgconfig autoconf gcc make libjwt cppcheck httpd-devel
 Requires: libjwt
 
 %description
