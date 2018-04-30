@@ -49,6 +49,7 @@ NOTE: All settings available at all scopes
 **Context:** server config, virtual host, directory  
 
 Enables the module, off by default.
+
 `ProxyJwtAuthEnabled Off` currently non-functional, so do not enable in config scope unless it should be on for all locations.
 
 ### ProxyJwtAuthAllowMissing directive
