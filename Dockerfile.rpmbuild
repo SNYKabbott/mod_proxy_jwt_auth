@@ -8,7 +8,7 @@ RUN yum install -y rpm-build
 # RPM build requires the user to actually exist.
 ARG USER_UID=1000
 ARG USER_GID=1000
-RUN groupadd -g $USER_UID build && useradd -u $USER_UID -g $USER_GID -d /build --create-home build
+RUN groupadd -g $USER_GID build && useradd -u $USER_UID -g $USER_GID -d /build --create-home build
 WORKDIR /build
 
 # Output directory
