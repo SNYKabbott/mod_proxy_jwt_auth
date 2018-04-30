@@ -57,6 +57,8 @@ AddDefaultCharset UTF-8
 
 
 <VirtualHost *:80>
+  LogLevel Debug
+
   SetEnv TEST_VAR_1 OneValue
   SetEnv TEST_VAR_2 TwoValue
 
