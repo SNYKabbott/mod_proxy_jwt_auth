@@ -2,7 +2,7 @@ mod_proxy_jwt_auth
 ===================
 
 Apache2 module which passes a Json Web Token as a Bearer authorization header to a proxied server, optionally mapping request environment variables to JWT claims.
-This module in intended to allow Apache to authenticate itself to a backend application when acting as a reverse proxy.
+This module is intended to allow Apache to authenticate itself to a backend application when acting as a reverse proxy.
 
 Supported algorithms : HS256, HS384, HS512, RS256, RS384, RS512, ES256, ES384, ES512
 
