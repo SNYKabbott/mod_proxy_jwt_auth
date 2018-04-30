@@ -8,7 +8,7 @@ if [ ! -d $RPMDIR ]; then
     mkdir $RPMDIR || exit 1
 fi
 
-docker build --build-arg USER_UID=$(id -u) --build-arg USER_UID=$(id -g) -f Dockerfile.rpmbuild -t mod_proxy_jwt_auth:rpmbuild . || exit 1
+docker build --build-arg USER_UID=$(id -u) --build-arg USER_GID=$(id -g) -f Dockerfile.rpmbuild -t mod_proxy_jwt_auth:rpmbuild . || exit 1
 docker run --rm -v $RPMDIR:/RPMS mod_proxy_jwt_auth:rpmbuild || exit 1
 
 docker-compose -f docker-compose.test.yml build || exit 1
