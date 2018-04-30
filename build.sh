@@ -3,8 +3,13 @@
 # NOTE: This does not clean up Docker images
 # WARNING: Must be run from the repo dir
 
+RPMDIR="$(pwd)/RPMS"
+if [ ! -d $RPMDIR ]; then
+    mkdir $RPMDIR || exit 1
+fi
+
 docker build --build-arg USER_UID=$(id -u) --build-arg USER_UID=$(id -g) -f Dockerfile.rpmbuild -t mod_proxy_jwt_auth:rpmbuild . || exit 1
-docker run --rm -v $(pwd)/RPMS:/RPMS mod_proxy_jwt_auth:rpmbuild || exit 1
+docker run --rm -v $RPMDIR:/RPMS mod_proxy_jwt_auth:rpmbuild || exit 1
 
 docker-compose -f docker-compose.test.yml build || exit 1
 docker-compose -f docker-compose.test.yml run test_suite bundle exec rspec -fd
