@@ -44,17 +44,17 @@ Settings
 NOTE: All settings available at all scopes
 
 ### ProxyJwtAuthEnabled directive
-**Description:** Enable mod_proxy_jwt_auth
-**Syntax:** ProxyJwtAuthEnabled On
-**Context:** server config, virtual host, directory
+**Description:** Enable mod_proxy_jwt_auth  
+**Syntax:** ProxyJwtAuthEnabled On  
+**Context:** server config, virtual host, directory  
 
 Enables the module, off by default.
 ProxyJwtAuthEnabled Off currently non-functional, so do not enable in config scope unless it should be on for all locations.
 
 ### ProxyJwtAuthAllowMissing directive
-**Description:** Enable missing env var tolerance
-**Syntax:** ProxyJwtAuthAllowMissing On
-**Context:** server config, virtual host, directory
+**Description:** Enable missing env var tolerance  
+**Syntax:** ProxyJwtAuthAllowMissing On  
+**Context:** server config, virtual host, directory  
 
 Enables tolerance for missing env vars, off by default.
 By default if a mapped request env var is not present the server will return a 500 to the client.
@@ -63,33 +63,33 @@ When this is enabled the server will add the claim to the JWT with an empty stri
 ProxyJwtAuthAllowMissing Off currently non-functional, so do not enable in config scope unless it should be on for all locations.
 
 ### ProxyJwtAuthClaimMap directive
-**Description:** Add a request env var ID to JWT claim ID map
-**Syntax:** ProxyJwtAuthClaimMap [env var key] [JWT claim key]
-**Context:** server config, virtual host, directory
+**Description:** Add a request env var ID to JWT claim ID map  
+**Syntax:** ProxyJwtAuthClaimMap [env var key] [JWT claim key]  
+**Context:** server config, virtual host, directory  
 
 This directive maps request env vars to JWT claims.
 If no mappings are defined the JWT will only contain default timing claims.
 Mappings are additive, and cannot be unset.
 
 ### ProxyJwtAuthTokenAlgorithm directive
-**Description:** Set JWT token algorithm
-**Syntax:** ProxyJwtAuthTokenAlgorithm [algorithm]
-**Context:** server config, virtual host, directory
+**Description:** Set JWT token algorithm  
+**Syntax:** ProxyJwtAuthTokenAlgorithm [algorithm]  
+**Context:** server config, virtual host, directory  
 
 Sets the JWT token signature algorithm, default NONE
 
 ### ProxyJwtAuthTokenAlgorithmKeyPath
-**Description:** File path to the JWT token algorithm key file
-**Syntax:** ProxyJwtAuthTokenAlgorithmKeyPath [key filesystem path]
-**Context:** server config, virtual host, directory
+**Description:** File path to the JWT token algorithm key file  
+**Syntax:** ProxyJwtAuthTokenAlgorithmKeyPath [key filesystem path]  
+**Context:** server config, virtual host, directory  
 
 Sets the path to the key file to use for signing keys.
 Only valid with algorithms that require a key.
 
 ### ProxyJwtAuthTokenDuration
-**Description:** Token duration in seconds
-**Syntax:** ProxyJwtAuthTokenDuration [Seconds integer]
-**Context:** server config, virtual host, directory
+**Description:** Token duration in seconds  
+**Syntax:** ProxyJwtAuthTokenDuration [Seconds integer]  
+**Context:** server config, virtual host, directory  
 
 Sets the token duration in seconds.
 After [duration] seconds the token will expire and no longer be valid.
