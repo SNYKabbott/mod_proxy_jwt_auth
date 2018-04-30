@@ -2,3 +2,6 @@ mod_proxy_jwt_auth was originally created in 2018 at Root Insurance (joinroot.co
 
 The following individuals have contributed to mod_proxy_jwt_auth:
   Tom Noonan II <tom@joinroot.com>
+
+mod_proxy_jwt_auth is based off mod_authnz_jwt by Anthony Deroche
+https://github.com/AnthonyDeroche/mod_authnz_jwt/
