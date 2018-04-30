@@ -1,4 +1,4 @@
-AC_INIT([mod_request_env_jwt], [m4_esyscmd_s([cat VERSION])], [devs@joinroot.com])
+AC_INIT([mod_proxy_jwt_auth], [m4_esyscmd_s([cat VERSION])], [devs@joinroot.com])
 AM_CONFIG_HEADER(config.h)
 
 # Don't require NEWS, COPYING, ChangeLog files.

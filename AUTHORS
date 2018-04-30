@@ -1,4 +1,4 @@
-mod_request_env_jwt was originally created in 2018 at Root Insurance (joinroot.com).
+mod_proxy_jwt_auth was originally created in 2018 at Root Insurance (joinroot.com).
 
-The following individuals have contributed to mod_request_env_jwt:
+The following individuals have contributed to mod_proxy_jwt_auth:
   Tom Noonan II <tom@joinroot.com>

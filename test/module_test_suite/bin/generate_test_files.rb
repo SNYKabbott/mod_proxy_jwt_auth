@@ -18,7 +18,7 @@ def httpd_conf_contents
 ServerRoot "/etc/httpd"
 Include conf.modules.d/*.conf
 
-LoadModule request_env_jwt_module /usr/lib64/httpd/modules/mod_request_env_jwt.so
+LoadModule proxy_jwt_auth_module /usr/lib64/httpd/modules/mod_proxy_jwt_auth.so
 
 listen 80
 
@@ -62,32 +62,32 @@ AddDefaultCharset UTF-8
   SetEnv TEST_VAR_1 OneValue
   SetEnv TEST_VAR_2 TwoValue
 
-  RequestEnvJwtClaimMap TEST_VAR_1 testvar1
+  ProxyJwtAuthClaimMap TEST_VAR_1 testvar1
 
 EOL
 
   contents += httpd_conf_location_block("/defaults", [])
-  contents += httpd_conf_location_block("/enabled", ["RequestEnvJwtEnabled On"])
+  contents += httpd_conf_location_block("/enabled", ["ProxyJwtAuthEnabled On"])
 
   contents += "# Claim Mapping Tests\n"
   { "missing_enabled" => "On", "missing_disabled" => "Off" }.each_pair do |name, enabled|
-    contents += httpd_conf_location_block("/claim_map/#{name}/without_testvar2", ["RequestEnvJwtEnabled On", "RequestEnvJwtAllowMissing #{enabled}"])
-    contents += httpd_conf_location_block("/claim_map/#{name}/with_testvar2",    ["RequestEnvJwtEnabled On", "RequestEnvJwtAllowMissing #{enabled}", "RequestEnvJwtClaimMap TEST_VAR_2 testvar2"])
+    contents += httpd_conf_location_block("/claim_map/#{name}/without_testvar2", ["ProxyJwtAuthEnabled On", "ProxyJwtAuthAllowMissing #{enabled}"])
+    contents += httpd_conf_location_block("/claim_map/#{name}/with_testvar2",    ["ProxyJwtAuthEnabled On", "ProxyJwtAuthAllowMissing #{enabled}", "ProxyJwtAuthClaimMap TEST_VAR_2 testvar2"])
     # Unknown var
-    contents += httpd_conf_location_block("/claim_map/#{name}/with_testvar3", ["RequestEnvJwtEnabled On", "RequestEnvJwtAllowMissing #{enabled}", "RequestEnvJwtClaimMap TEST_VAR_3 testvar3"])
+    contents += httpd_conf_location_block("/claim_map/#{name}/with_testvar3", ["ProxyJwtAuthEnabled On", "ProxyJwtAuthAllowMissing #{enabled}", "ProxyJwtAuthClaimMap TEST_VAR_3 testvar3"])
   end
 
   contents += "# Algorithm Tests\n"
   ModuleTestSuite::ALGORITHMS.keys.each do |algorithm|
-    options = ["RequestEnvJwtEnabled On", "RequestEnvJwtTokenAlgorithm #{algorithm}"]
+    options = ["ProxyJwtAuthEnabled On", "ProxyJwtAuthTokenAlgorithm #{algorithm}"]
     key_path = ModuleTestSuite::Keys.private_key_filename(algorithm)
-    options.push("RequestEnvJwtTokenAlgorithmKeyPath #{key_path}") unless key_path.nil?
+    options.push("ProxyJwtAuthTokenAlgorithmKeyPath #{key_path}") unless key_path.nil?
 
     contents += httpd_conf_location_block("/algorithms/#{algorithm}", options)
   end
 
   contents += "# Duration Tests\n"
-  contents += httpd_conf_location_block("/token_duration", ["RequestEnvJwtEnabled On", "RequestEnvJwtTokenDuration 90"])
+  contents += httpd_conf_location_block("/token_duration", ["ProxyJwtAuthEnabled On", "ProxyJwtAuthTokenDuration 90"])
 
   contents += "</VirtualHost>"
 

@@ -1,6 +1,6 @@
 require_relative "spec_helper.rb"
 
-describe "mod_request_env_jwt" do
+describe "mod_proxy_jwt_auth" do
   before :all do
     SpecHelpers.wait_ready
   end

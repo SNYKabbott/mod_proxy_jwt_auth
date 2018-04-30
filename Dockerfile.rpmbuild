@@ -23,13 +23,13 @@ RUN rpmbuild -ba rpm_specs/libjwt.spec
 USER root
 RUN rpm -i /build/rpmbuild/RPMS/x86_64/libjwt-[0-9]*.rpm
 
-# Build the mod_request_env_jwt rpm
-COPY rpm_specs/mod_request_env_jwt.spec /build/rpm_specs/mod_request_env_jwt.spec
-RUN grep BuildRequires rpm_specs/mod_request_env_jwt.spec | sed -e 's|^BuildRequires: ||' | xargs yum install -y
+# Build the mod_proxy_jwt_auth rpm
+COPY rpm_specs/mod_proxy_jwt_auth.spec /build/rpm_specs/mod_proxy_jwt_auth.spec
+RUN grep BuildRequires rpm_specs/mod_proxy_jwt_auth.spec | sed -e 's|^BuildRequires: ||' | xargs yum install -y
 
-COPY . /build/mod_request_env_jwt
-RUN chown -R build:build /build/mod_request_env_jwt
+COPY . /build/mod_proxy_jwt_auth
+RUN chown -R build:build /build/mod_proxy_jwt_auth
 
 USER build
 # The cp is to make the path friendlier and to allow the image built libjwt to be copied out
-CMD rpmbuild -ba rpm_specs/mod_request_env_jwt.spec && cp /build/rpmbuild/RPMS/* /RPMS -rv
+CMD rpmbuild -ba rpm_specs/mod_proxy_jwt_auth.spec && cp /build/rpmbuild/RPMS/* /RPMS -rv
