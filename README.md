@@ -49,7 +49,7 @@ NOTE: All settings available at all scopes
 **Context:** server config, virtual host, directory  
 
 Enables the module, off by default.
-ProxyJwtAuthEnabled Off currently non-functional, so do not enable in config scope unless it should be on for all locations.
+`ProxyJwtAuthEnabled Off` currently non-functional, so do not enable in config scope unless it should be on for all locations.
 
 ### ProxyJwtAuthAllowMissing directive
 **Description:** Enable missing env var tolerance  
@@ -60,7 +60,7 @@ Enables tolerance for missing env vars, off by default.
 By default if a mapped request env var is not present the server will return a 500 to the client.
 When this is enabled the server will add the claim to the JWT with an empty string for the value.
 
-ProxyJwtAuthAllowMissing Off currently non-functional, so do not enable in config scope unless it should be on for all locations.
+`ProxyJwtAuthAllowMissing Off` currently non-functional, so do not enable in config scope unless it should be on for all locations.
 
 ### ProxyJwtAuthClaimMap directive
 **Description:** Add a request env var ID to JWT claim ID map  
