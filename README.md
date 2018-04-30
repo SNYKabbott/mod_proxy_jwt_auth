@@ -4,17 +4,18 @@ mod_proxy_jwt_auth
 Apache2 module which passes a Json Web Token as a Bearer authorization header to a proxied server, optionally mapping request environment variables to JWT claims.
 This module in intended to allow Apache to authenticate itself to a backend application when acting as a reverse proxy.
 
-More on JWT : https://jwt.io/
-
 Supported algorithms : HS256, HS384, HS512, RS256, RS384, RS512, ES256, ES384, ES512
+
+More on JWT : https://jwt.io/
 
 Quickstart
 ----------
 
-### NOTE: The following helpers must be run from the repo directory, require Docker and docker-compose, and leave Docker images on the host.
+NOTE: The following commands must be run from the repo directory, require Docker and docker-compose, and leave Docker images on the host.
+
+### Compile libjwt and mod_proxy_jwt_auth, package into RPMs (available at ./RPMS), and run the test suite:
 
 ```bash
-# Compile libjwt and mod_proxy_jwt_auth, package into RPMs available at ./RPMS, and run the test suite
 ./build.sh
 ```
 
@@ -40,8 +41,6 @@ Send a JWT to the proxied "target" app with ENV vars TEST_VAR_1 and TEST_VAR_2 m
 
 Settings
 --------
-
-NOTE: All settings available at all scopes
 
 ### ProxyJwtAuthEnabled directive
 **Description:** Enable mod_proxy_jwt_auth  
