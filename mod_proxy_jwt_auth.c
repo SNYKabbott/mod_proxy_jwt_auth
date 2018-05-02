@@ -18,16 +18,31 @@
 #include "http_request.h"
 #include "jwt.h"
 
-#define TOKEN_DEFAULT_DURATION 30
-
 typedef struct {
-  int enabled;
-  int allow_missing;
+  int enabled:1;
+  int allow_missing:1;
   apr_table_t *claim_map;
   jwt_alg_t token_alg;
   unsigned char *token_alg_key;
   int token_alg_key_len;
   int token_duration;
+  const char *header_name;
+} proxy_jwt_auth_config_values;
+
+typedef struct {
+  unsigned int enabled:1;
+  unsigned int allow_missing:1;
+  // No claim_map: Additive, and apr_is_empty_table can be used instead
+  unsigned int token_alg:1;
+  unsigned int token_alg_key:1;
+  // No token_alg_key_len: Always set with token_alg_key
+  unsigned int token_duration:1;
+  unsigned int header_name:1;
+} proxy_jwt_auth_config_flags;
+
+typedef struct {
+  proxy_jwt_auth_config_values *values;
+  proxy_jwt_auth_config_flags *isset;
 } proxy_jwt_auth_config;
 
 typedef enum {
@@ -36,7 +51,8 @@ typedef enum {
   dir_claim_map,
   dir_token_alg,
   dir_token_alg_key,
-  dir_token_duration
+  dir_token_duration,
+  dir_header_name
 } proxy_jwt_auth_directive_enum;
 
 // The following struct is for passing multiple variables into the claim_map apr_table_do iterator
@@ -51,6 +67,7 @@ typedef struct {
 void load_key_file(apr_pool_t *pool, const char *path, proxy_jwt_auth_config *conf);
 jwt_alg_t str_to_jwt_alg(apr_pool_t *pool, const char *alg);
 
+void *allocate_config(apr_pool_t *pool);
 void *create_dir_conf(apr_pool_t *pool, char *context);
 void *create_server_conf(apr_pool_t *pool, server_rec *s);
 void *merge_conf(apr_pool_t *pool, void *BASE, void *ADD);
@@ -74,6 +91,7 @@ static const command_rec proxy_jwt_auth_directives[] = {
   AP_INIT_TAKE1("ProxyJwtAuthTokenAlgorithm",        set_config_single_arg, (void *)dir_token_alg,      OR_ALL, "Set JWT token algorithm"),
   AP_INIT_TAKE1("ProxyJwtAuthTokenAlgorithmKeyPath", set_config_single_arg, (void *)dir_token_alg_key,  OR_ALL, "File path to the JWT token algorithm key file"),
   AP_INIT_TAKE1("ProxyJwtAuthTokenDuration",         set_config_single_arg, (void *)dir_token_duration, OR_ALL, "JWT token duration in seconds"),
+  AP_INIT_TAKE1("ProxyJwtAuthHeaderName",            set_config_single_arg, (void *)dir_header_name,    OR_ALL, "Set HTTP Header name"),
   { NULL }
 };
 
@@ -103,19 +121,20 @@ void load_key_file(apr_pool_t *pool, const char *path, proxy_jwt_auth_config *co
 
   // Seek to the end and get the length
   fseek(fp, 0, SEEK_END);
-  conf->token_alg_key_len = ftell(fp);
+  conf->values->token_alg_key_len = ftell(fp);
   rewind(fp);
 
-  conf->token_alg_key = apr_pcalloc(pool, conf->token_alg_key_len);
-  bytes_read = fread(conf->token_alg_key, 1, conf->token_alg_key_len, fp);
+  conf->values->token_alg_key = apr_pcalloc(pool, conf->values->token_alg_key_len);
+  bytes_read = fread(conf->values->token_alg_key, 1, conf->values->token_alg_key_len, fp);
   fclose(fp);
 
-  if(bytes_read != conf->token_alg_key_len) {
-    ap_log_perror(APLOG_MARK, APLOG_ERR, 0, pool, APLOGNO(99901) "mod_proxy_jwt_auth: Error while reading key file %s: read %d/%d bytes", path, bytes_read, conf->token_alg_key_len);
+  if(bytes_read != conf->values->token_alg_key_len) {
+    ap_log_perror(APLOG_MARK, APLOG_ERR, 0, pool, APLOGNO(99901) "mod_proxy_jwt_auth: Error while reading key file %s: read %d/%d bytes", path, bytes_read, conf->values->token_alg_key_len);
     abort();
   }
 
-  *(conf->token_alg_key + conf->token_alg_key_len) = '\0';
+  *(conf->values->token_alg_key + conf->values->token_alg_key_len) = '\0';
+  conf->isset->token_alg_key = 1;
 }
 
 jwt_alg_t str_to_jwt_alg(apr_pool_t *pool, const char *alg) {
@@ -146,16 +165,28 @@ jwt_alg_t str_to_jwt_alg(apr_pool_t *pool, const char *alg) {
 }
 
 /********** Configuration Functions **********/
-void *create_dir_conf(apr_pool_t *pool, char *context) {
+void *allocate_config(apr_pool_t *pool) {
   proxy_jwt_auth_config *conf = apr_pcalloc(pool, sizeof(proxy_jwt_auth_config));
+  conf->values = apr_pcalloc(pool, sizeof(proxy_jwt_auth_config_values));
+  if(conf->values == NULL)
+    return NULL;
+  conf->isset = apr_pcalloc(pool, sizeof(proxy_jwt_auth_config_flags));
+  if(conf->isset == NULL)
+    return NULL;
+  return conf;
+}
+
+void *create_dir_conf(apr_pool_t *pool, char *context) {
+  proxy_jwt_auth_config *conf = allocate_config(pool);
   if(conf) {
-    conf->enabled = 0;
-    conf->allow_missing = 0;
-    conf->claim_map = apr_table_make(pool, 0);
-    conf->token_alg = JWT_ALG_NONE;
-    conf->token_alg_key = NULL;
-    conf->token_alg_key_len = 0;
-    conf->token_duration = TOKEN_DEFAULT_DURATION;
+    conf->values->enabled = 0;
+    conf->values->allow_missing = 0;
+    conf->values->claim_map = apr_table_make(pool, 0);
+    conf->values->token_alg = JWT_ALG_NONE;
+    conf->values->token_alg_key = NULL;
+    conf->values->token_alg_key_len = 0;
+    conf->values->token_duration = 30;
+    conf->values->header_name = "Authorization";
   }
   return conf;
 }
@@ -167,25 +198,36 @@ void *create_server_conf(apr_pool_t *pool, server_rec *s) {
 void *merge_conf(apr_pool_t *pool, void *BASE, void *ADD) {
   proxy_jwt_auth_config *base = (proxy_jwt_auth_config *) BASE ; /* This is what was set in the parent context */
   proxy_jwt_auth_config *add  = (proxy_jwt_auth_config *) ADD ;   /* This is what is set in the new context */
-  proxy_jwt_auth_config *conf = apr_pcalloc(pool, sizeof(proxy_jwt_auth_config));
+  proxy_jwt_auth_config *conf = allocate_config(pool);
 
   /* Merge configurations */
-  conf->enabled = ( add->enabled == 0 ) ? base->enabled : add->enabled;
-  conf->allow_missing = ( add->allow_missing == 0 ) ? base->allow_missing : add->allow_missing;
+  conf->values->enabled = ( add->isset->enabled == 0 ) ? base->values->enabled : add->values->enabled;
+  conf->isset->enabled = add->isset->enabled | base->isset->enabled;
 
-  conf->claim_map = apr_table_clone(pool, base->claim_map);
-  apr_table_overlap(conf->claim_map, add->claim_map, APR_OVERLAP_TABLES_SET);
+  conf->values->allow_missing = ( add->isset->allow_missing == 0 ) ? base->values->allow_missing : add->values->allow_missing;
+  conf->isset->allow_missing = add->isset->allow_missing | base->isset->allow_missing;
 
-  conf->token_alg = (add->token_alg == JWT_ALG_NONE) ? base->token_alg : add->token_alg;
-  if (add->token_alg_key_len > 0) {
-    conf->token_alg_key = add->token_alg_key;
-    conf->token_alg_key_len = add->token_alg_key_len;
+  conf->values->claim_map = apr_table_clone(pool, base->values->claim_map);
+  apr_table_overlap(conf->values->claim_map, add->values->claim_map, APR_OVERLAP_TABLES_SET);
+
+  conf->values->token_alg = (add->isset->token_alg == 0) ? base->values->token_alg : add->values->token_alg;
+  conf->isset->token_alg = add->isset->token_alg | base->isset->token_alg;
+
+  if (add->isset->token_alg_key == 0) {
+    conf->values->token_alg_key = base->values->token_alg_key;
+    conf->values->token_alg_key_len = base->values->token_alg_key_len;
   } else {
-    conf->token_alg_key = base->token_alg_key;
-    conf->token_alg_key_len = base->token_alg_key_len;
+    conf->values->token_alg_key = add->values->token_alg_key;
+    conf->values->token_alg_key_len = add->values->token_alg_key_len;
   }
+  conf->isset->token_alg_key = add->isset->token_alg_key | base->isset->token_alg_key;
 
-  conf->token_duration = ( add->enabled == TOKEN_DEFAULT_DURATION ) ? base->token_duration : add->token_duration;
+  conf->values->token_duration = ( add->isset->token_duration == 0 ) ? base->values->token_duration : add->values->token_duration;
+  conf->isset->token_duration = add->isset->token_duration | base->isset->token_duration;
+
+  conf->values->header_name = ( add->isset->header_name == 0 ) ? base->values->header_name : add->values->header_name;
+  conf->isset->header_name = add->isset->header_name | base->isset->header_name;
+
   return conf ;
 }
 
@@ -200,26 +242,40 @@ static const char *set_config_single_arg(cmd_parms *cmd, void *config, const cha
 
   switch ((proxy_jwt_auth_directive_enum)cmd->info) {
   case dir_enabled:
-    if (!strcasecmp(value, "on"))
-      conf->enabled = 1;
-    else
-      conf->enabled = 0;
+    if (!strcasecmp(value, "on")) {
+      conf->values->enabled = 1;
+      conf->isset->enabled = 1;
+    }
+    else {
+      conf->values->enabled = 0;
+      conf->isset->enabled = 1;
+    }
     break;
   case dir_allow_missing:
-    if (!strcasecmp(value, "on"))
-      conf->allow_missing = 1;
-    else
-      conf->allow_missing = 0;
+    if (!strcasecmp(value, "on")) {
+      conf->values->allow_missing = 1;
+      conf->isset->allow_missing = 1;
+    }
+    else {
+      conf->values->allow_missing = 0;
+      conf->isset->allow_missing = 1;
+    }
     break;
   case dir_token_alg:
-    conf->token_alg = str_to_jwt_alg(cmd->pool, value);
+    conf->values->token_alg = str_to_jwt_alg(cmd->pool, value);
+    conf->isset->token_alg = 1;
     break;
   case dir_token_alg_key:
     load_key_file(cmd->pool, value, conf);
     break;
   case dir_token_duration:
-    conf->token_duration = atoi(value);
-    ap_log_perror(APLOG_MARK, APLOG_INFO, 0, cmd->pool, APLOGNO(99903) "mod_proxy_jwt_auth: Token duration set to %d seconds", conf->token_duration);
+    conf->values->token_duration = atoi(value);
+    conf->isset->token_duration = 1;
+    ap_log_perror(APLOG_MARK, APLOG_INFO, 0, cmd->pool, APLOGNO(99903) "mod_proxy_jwt_auth: Token duration set to %d seconds", conf->values->token_duration);
+    break;
+  case dir_header_name:
+    conf->values->header_name = value;
+    conf->isset->header_name = 1;
     break;
   default:
     ap_log_perror(APLOG_MARK, APLOG_ERR, 0, cmd->pool, APLOGNO(99904) "mod_proxy_jwt_auth: INTERNAL ERROR: Unknown directive 0x%02x passed to set_config_single_arg", (proxy_jwt_auth_directive_enum)cmd->info);
@@ -240,7 +296,7 @@ static const char *set_config_double_arg(cmd_parms *cmd, void *config, const cha
 
   switch ((proxy_jwt_auth_directive_enum)cmd->info) {
   case dir_claim_map:
-    apr_table_set(conf->claim_map, value1, value2);
+    apr_table_set(conf->values->claim_map, value1, value2);
     break;
   default:
     ap_log_perror(APLOG_MARK, APLOG_ERR, 0, cmd->pool, APLOGNO(99905) "mod_proxy_jwt_auth: INTERNAL ERROR: Unknown directive 0x%02x passed to set_config_double_arg", (proxy_jwt_auth_directive_enum)cmd->info);
@@ -263,7 +319,7 @@ int iterate_claim_map(void* data_v, const char *env_key, const char *jwt_key) {
 
   env_value = apr_table_get(data->r->subprocess_env, env_key);
   if (env_value == NULL) {
-    if (data->conf->allow_missing != 1) {
+    if (data->conf->values->allow_missing == 0) {
       ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, data->r, APLOGNO(99907) "mod_proxy_jwt_auth: Request env missing required key %s", env_key);
       apr_table_do(print_request_env_keys, data->r, data->r->subprocess_env, NULL);
       data->error = 1;
@@ -291,7 +347,7 @@ int map_env_claims(request_rec *r, proxy_jwt_auth_config *conf, jwt_t *token) {
   iterator_data->token = token;
   iterator_data->error = 0;
 
-  apr_table_do(iterate_claim_map, iterator_data, conf->claim_map, NULL);
+  apr_table_do(iterate_claim_map, iterator_data, conf->values->claim_map, NULL);
   return iterator_data->error;
 }
 
@@ -308,7 +364,7 @@ int add_auth_header(request_rec *r, proxy_jwt_auth_config *conf) {
     return HTTP_INTERNAL_SERVER_ERROR;
   }
 
-  rv = jwt_set_alg(token, conf->token_alg, conf->token_alg_key, conf->token_alg_key_len);
+  rv = jwt_set_alg(token, conf->values->token_alg, conf->values->token_alg_key, conf->values->token_alg_key_len);
   if(rv != 0) {
     ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(99910) "mod_proxy_jwt_auth: Error setting JWT algorithm: %s", strerror(rv));
     return HTTP_INTERNAL_SERVER_ERROR;
@@ -317,7 +373,7 @@ int add_auth_header(request_rec *r, proxy_jwt_auth_config *conf) {
   // Set timing claims
   if(jwt_add_grant_int(token, "iat", now) != 0 ||
      jwt_add_grant_int(token, "nbf", now) != 0 ||
-     jwt_add_grant_int(token, "exp", (now + conf->token_duration)) != 0) {
+     jwt_add_grant_int(token, "exp", (now + conf->values->token_duration)) != 0) {
     ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(99911) "mod_proxy_jwt_auth: Error setting JWT timing claims");
     return HTTP_INTERNAL_SERVER_ERROR;
   }
@@ -335,7 +391,7 @@ int add_auth_header(request_rec *r, proxy_jwt_auth_config *conf) {
     return HTTP_INTERNAL_SERVER_ERROR;
   }
 
-  apr_table_setn(r->headers_in, "Authorization", apr_psprintf(r->pool, "Bearer %s", token_str));
+  apr_table_setn(r->headers_in, conf->values->header_name, apr_psprintf(r->pool, "Bearer %s", token_str));
 
   jwt_free(token);
   free(token_str);
@@ -351,11 +407,10 @@ static int proxy_jwt_auth_handler(request_rec *r)
 					    ap_get_module_config(r->per_dir_config, &proxy_jwt_auth_module));
   int rv;
 
-  if (conf->enabled != 1) {
+  if (conf->values->enabled == 0) {
     ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r, APLOGNO(99913) "mod_proxy_jwt_auth: Disabled");
     return DECLINED;
   }
-
 
   rv = add_auth_header(r, conf);
   if (rv != OK)

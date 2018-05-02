@@ -20,18 +20,15 @@ module SpecHelpers
   class TestRequest
     attr_reader :raw_response, :authorization_type, :b64_token, :token
 
-    def initialize(path)
+    def initialize(path, header_name = "Authorization")
       @raw_response = HTTParty.get("http://httpd/#{path}")
       return unless http_code == 200
-      @authorization_type, @b64_token = @raw_response["@env"].fetch("HTTP_AUTHORIZATION", "").split(" ")
+      # header_name.upcase is due to Sinatra upcasing the headers.
+      @authorization_type, @b64_token = @raw_response["@env"].fetch("HTTP_#{header_name.upcase}", "").split(" ")
     end
 
     def http_code
       @raw_response.code
-    end
-
-    def has_authorization_header?
-      @raw_response["@env"].key? "HTTP_AUTHORIZATION"
     end
 
     def has_bearer_token?
@@ -41,7 +38,7 @@ module SpecHelpers
     def decode(algorithm = "NONE")
       return nil unless has_bearer_token?
       key = ModuleTestSuite::Keys.load_public_key(algorithm)
-      @token = JWT.decode(@raw_response["@env"]["HTTP_AUTHORIZATION"].split(" ")[1], key, !key.nil?, :algorithm => algorithm)
+      @token = JWT.decode(@b64_token, key, !key.nil?, :algorithm => algorithm)
     end
 
     def headers

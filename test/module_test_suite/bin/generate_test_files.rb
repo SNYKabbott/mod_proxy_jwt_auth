@@ -89,6 +89,9 @@ EOL
   contents += "# Duration Tests\n"
   contents += httpd_conf_location_block("/token_duration", ["ProxyJwtAuthEnabled On", "ProxyJwtAuthTokenDuration 90"])
 
+  contents += "# Header Name Tests\n"
+  contents += httpd_conf_location_block("/header_name", ["ProxyJwtAuthEnabled On", "ProxyJwtAuthHeaderName ProxyAuthorization"])
+
   contents += "</VirtualHost>"
 
   contents

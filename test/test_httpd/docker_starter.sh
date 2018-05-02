@@ -3,6 +3,11 @@ set -eo pipefail
 
 RPMDIR="/RPMS/x86_64"
 
+function install_rpm {
+    target=$(ls ${RPMDIR}/${1}-[0-9]*.rpm | sort -nr | head -n 1)
+    rpm -i $target
+}
+
 # Wait for the rpm to be generated
 for((c=0;;c++)); do
     # Use $rv not $? because "set -e" is active
@@ -19,5 +24,7 @@ for((c=0;;c++)); do
     sleep 1
 done
 
-rpm -i ${RPMDIR}/libjwt-[0-9]*.rpm ${RPMDIR}/mod_proxy_jwt_auth-[0-9]*.rpm
+install_rpm "libjwt"
+install_rpm "mod_proxy_jwt_auth"
+
 exec /usr/sbin/httpd -f /test_files/httpd/httpd.conf -e info -DFOREGROUND

@@ -12,7 +12,7 @@ describe "mod_proxy_jwt_auth" do
 
   it "can be enabled" do
     response = SpecHelpers::TestRequest.new("/enabled")
-    expect(response.has_authorization_header?).to be_truthy
+    expect(response.has_bearer_token?).to be_truthy
   end
 
   it 'uses the "NONE" algorithm by default' do
@@ -115,6 +115,15 @@ describe "mod_proxy_jwt_auth" do
         expect(response.headers["alg"].upcase).to eql(algorithm)
         expect(response.payload["testvar1"]).to eql("OneValue")
       end
+    end
+  end
+
+  describe "Header name" do
+    it "can be changed" do
+      response = SpecHelpers::TestRequest.new("/header_name")
+      expect(response.has_bearer_token?).to be_falsy
+      response = SpecHelpers::TestRequest.new("/header_name", "ProxyAuthorization")
+      expect { response.decode }.to_not raise_exception
     end
   end
 end
