@@ -39,6 +39,12 @@ Send a JWT to the proxied "target" app with ENV vars TEST_VAR_1 and TEST_VAR_2 m
 </Location>
 ```
 
+Example header:
+
+```
+Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJub25lIn0.eyJpYXQiOjE1MjUzNjM5MzIsIm5iZiI6MTUyNTM2MzkzMiwiZXhwIjoxNTI1MzYzOTYyLCJ0ZXN0dmFyMSI6Ik9uZVZhbHVlIiwidGVzdHZhcjIiOiJUd29WYWx1ZSJ9.
+```
+
 Settings
 --------
 
