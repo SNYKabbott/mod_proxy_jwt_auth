@@ -18,6 +18,8 @@
 #include "http_request.h"
 #include "jwt.h"
 
+APLOG_USE_MODULE(proxy_jwt_auth);
+
 typedef struct {
   int enabled:1;
   int allow_missing:1;
