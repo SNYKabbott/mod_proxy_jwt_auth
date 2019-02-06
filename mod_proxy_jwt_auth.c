@@ -353,11 +353,12 @@ int map_env_claims(request_rec *r, proxy_jwt_auth_config *conf, jwt_t *token) {
 
 int add_auth_header(request_rec *r, proxy_jwt_auth_config *conf) {
   jwt_t *token;
-  long now = time(NULL);
+  apr_time_t start_time, timing_claim_time;
   char *token_str;
   int rv;
 
   /* NOTE: These functions return the err code, they don't set errno */
+  start_time = apr_time_now();
   rv = jwt_new(&token);
   if(rv != 0) {
     ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(99909) "mod_proxy_jwt_auth: Error initializing JWT token: %s", strerror(rv));
@@ -370,10 +371,13 @@ int add_auth_header(request_rec *r, proxy_jwt_auth_config *conf) {
     return HTTP_INTERNAL_SERVER_ERROR;
   }
 
+  ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r, APLOGNO(99915) "mod_proxy_jwt_auth: JWT initialization took %ld microseconds", (apr_time_now() - start_time));
+
   // Set timing claims
-  if(jwt_add_grant_int(token, "iat", now) != 0 ||
-     jwt_add_grant_int(token, "nbf", now) != 0 ||
-     jwt_add_grant_int(token, "exp", (now + conf->values->token_duration)) != 0) {
+  timing_claim_time = apr_time_now();
+  if(jwt_add_grant_int(token, "iat", apr_time_sec(timing_claim_time)) != 0 ||
+     jwt_add_grant_int(token, "nbf", apr_time_sec(timing_claim_time)) != 0 ||
+     jwt_add_grant_int(token, "exp", (apr_time_sec(timing_claim_time) + conf->values->token_duration)) != 0) {
     ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, APLOGNO(99911) "mod_proxy_jwt_auth: Error setting JWT timing claims");
     return HTTP_INTERNAL_SERVER_ERROR;
   }
@@ -383,6 +387,8 @@ int add_auth_header(request_rec *r, proxy_jwt_auth_config *conf) {
     // This function logs errors inline
     return HTTP_INTERNAL_SERVER_ERROR;
   }
+
+  ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r, APLOGNO(99916) "mod_proxy_jwt_auth: JWT claim operations took %ld microseconds", (apr_time_now() - timing_claim_time));
 
   // jwt_encode_str returns a pointer that needs to be free'd.
   token_str = jwt_encode_str(token);
@@ -395,6 +401,8 @@ int add_auth_header(request_rec *r, proxy_jwt_auth_config *conf) {
 
   jwt_free(token);
   free(token_str);
+
+  ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r, APLOGNO(99917) "mod_proxy_jwt_auth: JWT generation took %ld microseconds", (apr_time_now() - start_time));
 
   return OK;
 }
