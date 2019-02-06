@@ -418,10 +418,11 @@ static int proxy_jwt_auth_handler(request_rec *r)
   int rv;
 
   if (conf->values->enabled == 0) {
-    ap_log_rerror(APLOG_MARK, APLOG_DEBUG, 0, r, APLOGNO(99913) "mod_proxy_jwt_auth: Disabled");
+    ap_log_rerror(APLOG_MARK, APLOG_TRACE1, 0, r, APLOGNO(99913) "mod_proxy_jwt_auth: Disabled");
     return DECLINED;
   }
 
+  ap_log_rerror(APLOG_MARK, APLOG_TRACE1, 0, r, APLOGNO(99914) "mod_proxy_jwt_auth: Enabled");
   rv = add_auth_header(r, conf);
   if (rv != OK)
     return rv;
