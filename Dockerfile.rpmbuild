@@ -8,11 +8,11 @@ RUN yum install -y rpm-build
 # RPM build requires the user to actually exist.
 ARG USER_UID=1000
 ARG USER_GID=1000
-RUN groupadd -g $USER_GID build && useradd -u $USER_UID -g $USER_GID -d /build --create-home build
+RUN groupadd -o -g $USER_GID build && useradd -o -u $USER_UID -g $USER_GID -d /build --create-home build
 WORKDIR /build
 
 # Output directory
-RUN mkdir /RPMS && chown build:build /RPMS
+RUN mkdir /RPMS && chown $USER_UID:$USER_GID /RPMS
 VOLUME ["/RPMS"]
 
 # Build & install the libjwt rpm
@@ -28,7 +28,7 @@ COPY rpm_specs/mod_proxy_jwt_auth.spec /build/rpm_specs/mod_proxy_jwt_auth.spec
 RUN grep BuildRequires rpm_specs/mod_proxy_jwt_auth.spec | sed -e 's|^BuildRequires: ||' | xargs yum install -y
 
 COPY . /build/mod_proxy_jwt_auth
-RUN chown -R build:build /build/mod_proxy_jwt_auth
+RUN chown -R $USER_UID:$USER_GID /build/mod_proxy_jwt_auth
 
 USER build
 # The cp is to make the path friendlier and to allow the image built libjwt to be copied out
