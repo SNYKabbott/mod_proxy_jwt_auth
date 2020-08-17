@@ -11,9 +11,7 @@ ARG USER_GID=1000
 RUN groupadd -o -g $USER_GID build && useradd -o -u $USER_UID -g $USER_GID -d /build --create-home build
 WORKDIR /build
 
-# Output directory
-RUN mkdir /RPMS && chown $USER_UID:$USER_GID /RPMS
-VOLUME ["/RPMS"]
+RUN chmod 755 /build
 
 # Build & install the libjwt rpm
 COPY rpm_specs/libjwt.spec /build/rpm_specs/libjwt.spec
@@ -32,4 +30,7 @@ RUN chown -R $USER_UID:$USER_GID /build/mod_proxy_jwt_auth
 
 USER build
 # The cp is to make the path friendlier and to allow the image built libjwt to be copied out
-CMD rpmbuild -ba rpm_specs/mod_proxy_jwt_auth.spec && cp /build/rpmbuild/RPMS/* /RPMS -rv
+RUN rpmbuild -ba rpm_specs/mod_proxy_jwt_auth.spec 
+USER root
+RUN mkdir -p /RPMS && cp -r /build/rpmbuild/RPMS/* /RPMS && chmod -R 755 /RPMS
+CMD ["ls", "-al", "/RPMS"]
