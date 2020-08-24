@@ -1,3 +1,4 @@
 test
 docker-compose.test.yml
 RPMS
+build.sh
