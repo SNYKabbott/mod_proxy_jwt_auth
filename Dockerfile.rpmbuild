@@ -23,8 +23,7 @@ RUN rpm -i /build/rpmbuild/RPMS/x86_64/libjwt-[0-9]*.rpm
 
 # Build the mod_proxy_jwt_auth rpm
 COPY rpm_specs/mod_proxy_jwt_auth.spec /build/rpm_specs/mod_proxy_jwt_auth.spec
-RUN grep BuildRequires rpm_specs/mod_proxy_jwt_auth.spec | sed -e 's|^BuildRequires: ||' | xargs yum install -y
-
+RUN grep BuildRequires rpm_specs/mod_proxy_jwt_auth.spec | sed -e 's|^BuildRequires: ||' | sed -e 's/libjwt//' | xargs yum install -y
 COPY . /build/mod_proxy_jwt_auth
 RUN chown -R $USER_UID:$USER_GID /build/mod_proxy_jwt_auth
 
