@@ -1,4 +1,4 @@
-FROM ruby:2.4
+FROM ruby:2.7
 
 RUN useradd --create-home testsuite
 
